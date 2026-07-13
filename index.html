@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>ITO - パス&プレイ</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#f2f2f7">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="ITO">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -16,15 +16,15 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <style>
   :root {
-    --bg: #000000;
-    --card: #1c1c1e;
-    --card2: #2c2c2e;
-    --accent: #0a84ff;
-    --text: #f5f5f7;
-    --muted: #8e8e93;
-    --hairline: rgba(255,255,255,0.08);
-    --good: #30d158;
-    --bad: #ff453a;
+    --bg: #f2f2f7;
+    --card: #ffffff;
+    --card2: #f2f2f7;
+    --accent: #5856d6;
+    --text: #1c1c1e;
+    --muted: #6e6e73;
+    --hairline: rgba(60,60,67,0.13);
+    --good: #34c759;
+    --bad: #ff3b30;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
@@ -41,34 +41,34 @@
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     padding: calc(20px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right))
-      calc(20px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+      calc(28px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
   }
   .screen {
     width: 100%; max-width: 420px;
-    display: flex; flex-direction: column; gap: 14px;
+    display: flex; flex-direction: column; gap: 20px;
   }
   h1 {
     text-align: center; font-size: 26px; margin: 0 0 6px;
     font-weight: 800; letter-spacing: -0.5px;
   }
   h1 span { color: var(--accent); }
-  h2 { font-size: 13px; margin: 0 0 2px; color: var(--muted); font-weight: 600;
+  h2 { font-size: 13px; margin: 0; color: var(--muted); font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.4px; }
   .card {
     background: var(--card);
-    border: 1px solid var(--hairline);
     border-radius: 18px;
     padding: 18px;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 12px 28px rgba(0,0,0,0.35);
+    display: flex; flex-direction: column; gap: 14px;
+    box-shadow: 0 1px 2px rgba(30,30,40,0.04), 0 8px 20px rgba(30,30,40,0.06);
   }
   .topic-card {
-    background: var(--card);
-    border: 1px solid var(--hairline);
+    background: linear-gradient(135deg, #eef0ff, #ffffff 60%);
+    border: 1px solid rgba(88,86,214,0.15);
     border-radius: 18px;
     padding: 26px 20px;
     text-align: center;
   }
-  .topic-card .label { color: var(--muted); font-size: 12px; margin-bottom: 10px; letter-spacing: 0.2px; }
+  .topic-card .label { color: var(--accent); font-size: 12px; margin-bottom: 10px; letter-spacing: 0.2px; font-weight: 600; }
   .topic-card .theme { font-size: 19px; font-weight: 700; line-height: 1.5; }
   .topic-card .range { margin-top: 10px; font-size: 13px; color: var(--accent); }
   input[type=text], textarea {
@@ -88,11 +88,11 @@
     transition: transform .08s ease, opacity .15s ease, background-color .15s ease;
   }
   button:active { transform: scale(0.97); opacity: 0.85; }
-  button.primary { background: var(--accent); color: #ffffff; }
+  button.primary { background: var(--accent); color: #ffffff; box-shadow: 0 6px 16px rgba(88,86,214,0.3); }
   button.secondary { background: var(--card2); color: var(--text); }
   button.ghost { background: transparent; color: var(--muted); padding: 8px 10px; font-size: 14px; }
   button.danger { background: var(--bad); color: #ffffff; }
-  button:disabled { opacity: 0.35; cursor: not-allowed; }
+  button:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
   .row { display: flex; gap: 10px; align-items: center; }
   .player-row { display: flex; gap: 8px; align-items: center; }
   .player-row input { flex: 1; }
@@ -100,14 +100,13 @@
   .muted { color: var(--muted); font-size: 13px; line-height: 1.6; }
   .center { text-align: center; }
   .big-number {
-    font-size: clamp(64px, 22vw, 96px); font-weight: 700; text-align: center;
-    color: var(--text); margin: 16px 0; font-variant-numeric: tabular-nums;
+    font-size: clamp(64px, 22vw, 96px); font-weight: 800; text-align: center;
+    margin: 16px 0; font-variant-numeric: tabular-nums;
     letter-spacing: -2px;
   }
   .name-tag {
     display: inline-block; padding: 7px 14px; border-radius: 999px;
-    background: var(--card2); font-weight: 600; font-size: 14px;
-    border: 1px solid var(--hairline);
+    font-weight: 700; font-size: 14px; color: #ffffff;
   }
   .order-list { display: flex; flex-direction: column; gap: 8px; }
   .order-item {
@@ -115,7 +114,7 @@
     background: var(--card2); border-radius: 12px; padding: 11px 14px;
   }
   .order-item .idx {
-    width: 24px; height: 24px; border-radius: 50%; background: var(--accent);
+    width: 24px; height: 24px; border-radius: 50%;
     color: #ffffff; display: flex; align-items: center; justify-content: center;
     font-size: 12px; font-weight: 700; flex-shrink: 0;
   }
@@ -124,21 +123,21 @@
   .reveal-item {
     display: flex; justify-content: space-between; align-items: center;
     background: var(--card2); border-radius: 12px; padding: 13px 16px;
-    font-size: 16px; font-weight: 600; opacity: 0; transform: translateY(6px);
+    font-size: 16px; font-weight: 700; opacity: 0; transform: translateY(6px);
     animation: pop .3s ease forwards;
   }
   @keyframes pop { to { opacity: 1; transform: translateY(0); } }
   .reveal-item .num { font-size: 20px; font-variant-numeric: tabular-nums; }
-  .reveal-item.ok { box-shadow: inset 3px 0 0 var(--good); }
-  .reveal-item.ng { box-shadow: inset 3px 0 0 var(--bad); }
+  .reveal-item.ok { box-shadow: inset 4px 0 0 var(--good); }
+  .reveal-item.ng { box-shadow: inset 4px 0 0 var(--bad); }
   .result-banner {
     text-align: center; font-size: 18px; font-weight: 700; padding: 16px;
     border-radius: 14px;
   }
-  .result-banner.win { background: rgba(48,209,88,0.12); color: var(--good); }
-  .result-banner.lose { background: rgba(255,69,58,0.12); color: var(--bad); }
+  .result-banner.win { background: rgba(52,199,89,0.12); color: #248a3d; }
+  .result-banner.lose { background: rgba(255,59,48,0.12); color: #d70015; }
   .handoff { text-align: center; padding: 36px 20px; }
-  .handoff .who { font-size: 24px; font-weight: 700; margin: 10px 0 22px; }
+  .handoff .who { font-size: 24px; font-weight: 800; margin: 10px 0 22px; }
   .footer-nav { display: flex; gap: 10px; }
   .footer-nav button { flex: 1; }
   .toggle-group {
@@ -149,7 +148,7 @@
     flex: 1; background: transparent; color: var(--muted);
     border-radius: 9px; padding: 9px 10px; font-size: 14px; font-weight: 600;
   }
-  .toggle-group button.active { background: #48484a; color: var(--text); }
+  .toggle-group button.active { background: #ffffff; color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
 </style>
 </head>
 <body>
@@ -206,7 +205,28 @@ const TOPICS = [
   { theme: "自分へのご褒美として使う金額", low: "ちょっとしたもの", high: "奮発" },
   { theme: "初めて行く場所での道に迷いやすさ", low: "迷わない", high: "すぐ迷う" },
   { theme: "友達の家に泊まるときの気の使い方", low: "気楽", high: "気を使う" },
+  { theme: "満員電車の混み具合の辛さ", low: "余裕", high: "地獄" },
+  { theme: "スマホの通知が来たときの反応速度", low: "放置", high: "即レス" },
+  { theme: "好きな音楽ジャンルへのこだわりの強さ", low: "ゆるい", high: "マニアック" },
+  { theme: "実家に帰る頻度の高さ", low: "たまに", high: "しょっちゅう" },
+  { theme: "朝の準備にかける時間", low: "最短", high: "念入り" },
+  { theme: "ドッキリを仕掛けられたときの動揺度", low: "冷静", high: "大パニック" },
+  { theme: "好きな映画やドラマを見返す熱量", low: "1回で満足", high: "擦り切れるほど" },
+  { theme: "知らない人に話しかけるハードルの高さ", low: "気軽", high: "無理" },
+  { theme: "部屋にあると落ち着かないものの度合い", low: "気にならない", high: "すごく気になる" },
+  { theme: "サプライズを企画する労力", low: "ちょっとした", high: "大掛かり" },
+  { theme: "苦手な食べ物を克服したい気持ち", low: "別にいい", high: "克服したい" },
+  { theme: "旅行の計画を立てる細かさ", low: "行き当たりばったり", high: "分刻み" },
+  { theme: "友達とケンカした時の仲直りの早さ", low: "長引く", high: "すぐ仲直り" },
+  { theme: "好きなアーティストのライブに行く本気度", low: "気が向いたら", high: "遠征する" },
+  { theme: "締め切りのないタスクへのやる気", low: "後回し", high: "すぐ着手" },
 ];
+
+const PLAYER_COLORS = [
+  "#FF3B30", "#FF9500", "#34C759", "#00C7BE", "#30B0C7",
+  "#007AFF", "#5856D6", "#AF52DE", "#FF2D55", "#A2845E",
+];
+function playerColor(i) { return PLAYER_COLORS[i % PLAYER_COLORS.length]; }
 
 let state = {
   screen: "setup",
@@ -380,12 +400,6 @@ const screens = {
       ta.onblur = () => { state.myListTopic = randomMyListTopic(); };
       tc.appendChild(el("div", { class: "muted", text: "お題リストを貼り付け(1行1お題)" }));
       tc.appendChild(ta);
-      const linkRow = el("div");
-      linkRow.appendChild(el("a", {
-        class: "link", text: "お題のアイデア集（note: alice_1126さん）を見る ↗",
-        attrs: { href: "https://note.com/alice_1126/n/n4ccd49df4fa5", target: "_blank", rel: "noopener noreferrer" }
-      }));
-      tc.appendChild(linkRow);
     } else {
       const themeInput = el("input", { attrs: { type: "text", placeholder: "例: 高級なもの" } });
       themeInput.value = state.customTheme;
@@ -445,7 +459,9 @@ const screens = {
     } else {
       const r = el("div", { class: "card center" });
       r.appendChild(el("div", { class: "muted", text: `${name} さんの数字` }));
-      r.appendChild(el("div", { class: "big-number", text: state.numbers[state.dealIndex] }));
+      const bigNum = el("div", { class: "big-number", text: state.numbers[state.dealIndex] });
+      bigNum.style.color = playerColor(state.dealIndex);
+      r.appendChild(bigNum);
       const btn = el("button", { class: "primary", text: "確認した（隠す）" });
       btn.style.width = "100%";
       btn.onclick = () => {
@@ -482,7 +498,11 @@ const screens = {
     const playerCard = el("div", { class: "card" });
     playerCard.appendChild(el("h2", { text: "プレイヤー" }));
     const grid = el("div", { class: "pick-grid" });
-    state.players.forEach(p => grid.appendChild(el("span", { class: "name-tag", text: p })));
+    state.players.forEach((p, i) => {
+      const tag = el("span", { class: "name-tag", text: p });
+      tag.style.background = playerColor(i);
+      grid.appendChild(tag);
+    });
     playerCard.appendChild(grid);
     c.appendChild(playerCard);
 
@@ -504,7 +524,10 @@ const screens = {
     }
     state.orderPicked.forEach((idx, i) => {
       const item = el("div", { class: "order-item" });
-      item.appendChild(el("div", { class: "idx", text: i + 1 }));
+      item.style.boxShadow = `inset 4px 0 0 ${playerColor(idx)}`;
+      const idxDot = el("div", { class: "idx", text: i + 1 });
+      idxDot.style.background = playerColor(idx);
+      item.appendChild(idxDot);
       item.appendChild(el("div", { text: state.players[idx] }));
       const removeBtn = el("button", { class: "ghost", text: "✕" });
       removeBtn.style.marginLeft = "auto";
@@ -522,6 +545,7 @@ const screens = {
       const grid = el("div", { class: "pick-grid" });
       remain.forEach(i => {
         const b = el("button", { class: "secondary", text: state.players[i] });
+        b.style.boxShadow = `inset 3px 0 0 ${playerColor(i)}`;
         b.onclick = () => { state.orderPicked.push(i); render(); };
         grid.appendChild(b);
       });
@@ -553,7 +577,9 @@ const screens = {
       if (!isOk) ok = false;
       const item = el("div", { class: `reveal-item ${isOk ? "ok" : "ng"}` });
       item.appendChild(el("div", { text: state.players[idx] }));
-      item.appendChild(el("div", { class: "num", text: num }));
+      const numEl = el("div", { class: "num", text: num });
+      numEl.style.color = playerColor(idx);
+      item.appendChild(numEl);
       list.appendChild(item);
       lastNum = Math.max(lastNum, num);
     });
