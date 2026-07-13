@@ -1,4 +1,4 @@
-const CACHE_NAME = "ito-app-v1";
+const CACHE_NAME = "ito-app-v2";
 const ASSETS = [
   "./index.html",
   "./manifest.json",
@@ -23,17 +23,17 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// network-first: always fetch the latest version when online,
+// only fall back to the cache when offline.
 self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((res) => {
-        if (event.request.method === "GET" && res.ok) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
+    fetch(event.request)
+      .then((res) => {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         return res;
-      }).catch(() => cached);
-    })
+      })
+      .catch(() => caches.match(event.request))
   );
 });
