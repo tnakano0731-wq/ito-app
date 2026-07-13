@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ITO - パス&プレイ</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1b1e2b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ITO">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<style>
+  :root {
+    --bg: #1b1e2b;
+    --card: #262a3d;
+    --accent: #6c8cff;
+    --accent2: #ff6ca0;
+    --text: #f1f2f6;
+    --muted: #9aa0b4;
+    --good: #4cd97b;
+    --bad: #ff5c5c;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: linear-gradient(160deg, #1b1e2b, #262a3d 60%, #1b1e2b);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    -webkit-user-select: none; user-select: none;
+  }
+  #app {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: calc(24px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
+      calc(24px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+  }
+  .screen {
+    width: 100%; max-width: 440px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  h1 {
+    text-align: center; font-size: 28px; margin: 0 0 4px;
+    letter-spacing: 2px;
+  }
+  h1 span { color: var(--accent); }
+  h2 { font-size: 18px; margin: 0; color: var(--muted); font-weight: 600; }
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+  .topic-card {
+    background: linear-gradient(135deg, #34385a, #262a3d);
+    border: 1px solid #3d4260;
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+  }
+  .topic-card .label { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+  .topic-card .theme { font-size: 20px; font-weight: 700; line-height: 1.5; }
+  .topic-card .range { margin-top: 10px; font-size: 13px; color: var(--accent); }
+  input[type=text], textarea {
+    width: 100%; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid #3d4260; background: #1f2233; color: var(--text);
+    font-size: 15px; outline: none; font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 110px; -webkit-user-select: text; user-select: text; }
+  input[type=text] { -webkit-user-select: text; user-select: text; }
+  a.link { color: var(--accent); text-decoration: none; font-size: 13px; }
+  a.link:active { opacity: 0.7; }
+  input[type=text]:focus { border-color: var(--accent); }
+  button {
+    border: none; border-radius: 12px; padding: 14px 18px;
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    transition: transform .08s ease, opacity .15s ease;
+  }
+  button:active { transform: scale(0.97); }
+  button.primary { background: var(--accent); color: #10121c; }
+  button.secondary { background: #3a3f5c; color: var(--text); }
+  button.ghost { background: transparent; color: var(--muted); padding: 8px 10px; font-size: 14px; }
+  button.danger { background: var(--bad); color: #10121c; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .player-row { display: flex; gap: 8px; align-items: center; }
+  .player-row input { flex: 1; }
+  .player-list { display: flex; flex-direction: column; gap: 8px; }
+  .muted { color: var(--muted); font-size: 14px; line-height: 1.6; }
+  .center { text-align: center; }
+  .big-number {
+    font-size: 96px; font-weight: 800; text-align: center;
+    color: var(--accent2); margin: 20px 0;
+    text-shadow: 0 0 30px rgba(255,108,160,0.4);
+  }
+  .name-tag {
+    display: inline-block; padding: 6px 14px; border-radius: 999px;
+    background: #3a3f5c; font-weight: 700; font-size: 15px;
+  }
+  .order-list { display: flex; flex-direction: column; gap: 8px; }
+  .order-item {
+    display: flex; align-items: center; gap: 10px;
+    background: #1f2233; border-radius: 10px; padding: 10px 14px;
+  }
+  .order-item .idx {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--accent);
+    color: #10121c; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; flex-shrink: 0;
+  }
+  .pick-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pick-grid button { flex: 1 1 auto; min-width: 90px; }
+  .reveal-item {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #1f2233; border-radius: 10px; padding: 12px 16px;
+    font-size: 17px; font-weight: 700; opacity: 0; transform: translateY(6px);
+    animation: pop .35s ease forwards;
+  }
+  @keyframes pop { to { opacity: 1; transform: translateY(0); } }
+  .reveal-item .num { font-size: 22px; }
+  .reveal-item.ok { border-left: 4px solid var(--good); }
+  .reveal-item.ng { border-left: 4px solid var(--bad); }
+  .result-banner {
+    text-align: center; font-size: 24px; font-weight: 800; padding: 16px;
+    border-radius: 14px;
+  }
+  .result-banner.win { background: rgba(76,217,123,0.15); color: var(--good); }
+  .result-banner.lose { background: rgba(255,92,92,0.15); color: var(--bad); }
+  .handoff { text-align: center; padding: 40px 20px; }
+  .handoff .who { font-size: 26px; font-weight: 800; margin: 12px 0 24px; }
+  .footer-nav { display: flex; gap: 10px; }
+  .footer-nav button { flex: 1; }
+  .toggle-group { display: flex; gap: 8px; }
+  .toggle-group button { flex: 1; background: #1f2233; color: var(--muted); }
+  .toggle-group button.active { background: var(--accent); color: #10121c; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const TOPICS = [
+  { theme: "高級なもの", low: "安い", high: "高い" },
+  { theme: "大人になったら怒られること", low: "弱い", high: "強い" },
+  { theme: "一人カラオケで歌ったら驚かれる曲", low: "普通", high: "意外" },
+  { theme: "学校で習うことの難しさ", low: "簡単", high: "難しい" },
+  { theme: "お化け屋敷の怖さ", low: "怖くない", high: "すごく怖い" },
+  { theme: "動物の強さ", low: "弱い", high: "強い" },
+  { theme: "旅行の持ち物の必要度", low: "なくてもいい", high: "絶対必要" },
+  { theme: "寿司ネタの高級さ", low: "庶民的", high: "高級" },
+  { theme: "冬にしたいことの寒さ度", low: "暖かい", high: "極寒" },
+  { theme: "芸能人の忙しさ", low: "暇そう", high: "多忙" },
+  { theme: "行ってみたい場所の非日常度", low: "近場", high: "秘境" },
+  { theme: "コンビニで買うものの値段", low: "安い", high: "高い" },
+  { theme: "もらって嬉しいものの度合い", low: "普通", high: "最高" },
+  { theme: "人生でやらかした失敗の大きさ", low: "小さい", high: "大きい" },
+  { theme: "部屋の汚さ", low: "きれい", high: "汚い" },
+  { theme: "お酒の強さ", low: "弱い", high: "強い" },
+  { theme: "絶叫アトラクションの怖さ", low: "穏やか", high: "絶叫" },
+  { theme: "好きな食べ物への愛", low: "普通", high: "溺愛" },
+  { theme: "デートに誘いたい場所の特別感", low: "気軽", high: "特別" },
+  { theme: "会社や学校を休みたい理由の正当性", low: "ズル休み", high: "正当" },
+  { theme: "一日だけ交換したい職業のレア度", low: "平凡", high: "特殊" },
+  { theme: "タイムカプセルに入れたいものの重要度", low: "個人的", high: "歴史的" },
+  { theme: "ロボットにやらせたい家事の大変さ", low: "簡単", high: "大変" },
+  { theme: "宇宙に持っていきたいものの実用性", low: "ロマン重視", high: "実用重視" },
+  { theme: "子供の頃憧れた職業のかっこよさ", low: "普通", high: "最強" },
+  { theme: "プレゼントされたら困る贈り物の困り度", low: "ちょっと困る", high: "すごく困る" },
+  { theme: "無人島に持っていきたい道具の必要度", low: "なくてもいい", high: "生死を分ける" },
+  { theme: "初対面の会話のきっかけになる話題の濃さ", low: "誰でも話せる", high: "マニアック" },
+  { theme: "記念日にしたい理由の特別感", low: "ささやか", high: "特別" },
+  { theme: "ペットにしたい生き物の飼いやすさ", low: "大変", high: "楽" },
+  { theme: "学生時代の思い出の濃さ", low: "薄い", high: "濃い" },
+  { theme: "一生に一度は挑戦したいことの難易度", low: "気軽", high: "命がけ" },
+  { theme: "好きな季節の過ごし方のアクティブさ", low: "のんびり", high: "アクティブ" },
+  { theme: "職場や学校にいたら助かる人の頼れ度", low: "ちょっと助かる", high: "神レベル" },
+  { theme: "旅行先で現地の人に驚かれる日本の習慣", low: "普通", high: "びっくり" },
+];
+
+let state = {
+  screen: "setup",
+  players: ["", "", ""],
+  topicMode: "random",
+  topic: null,
+  customTheme: "",
+  customLow: "弱い",
+  customHigh: "強い",
+  myListRaw: localStorage.getItem("ito_mylist") || "",
+  myListTopic: null,
+  numbers: [],
+  dealIndex: 0,
+  dealPhase: "handoff",
+  orderPicked: [],
+  revealIndex: 0,
+  revealedOk: true,
+};
+
+function render() {
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.className = "screen";
+  wrap.appendChild(header());
+  wrap.appendChild(screens[state.screen]());
+  app.appendChild(wrap);
+}
+
+function header() {
+  const h = document.createElement("div");
+  h.innerHTML = `<h1 style="margin-bottom:0">I<span>T</span>O</h1>`;
+  return h;
+}
+
+function el(tag, opts = {}, children = []) {
+  const e = document.createElement(tag);
+  if (opts.class) e.className = opts.class;
+  if (opts.text) e.textContent = opts.text;
+  if (opts.html) e.innerHTML = opts.html;
+  if (opts.onclick) e.onclick = opts.onclick;
+  if (opts.attrs) for (const k in opts.attrs) e.setAttribute(k, opts.attrs[k]);
+  children.forEach(c => e.appendChild(c));
+  return e;
+}
+
+function randomTopic() {
+  return TOPICS[Math.floor(Math.random() * TOPICS.length)];
+}
+
+function parseMyList() {
+  return state.myListRaw
+    .split("\n")
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .map(line => {
+      const parts = line.split("|").map(p => p.trim());
+      return { theme: parts[0], low: parts[1] || "弱い", high: parts[2] || "強い" };
+    });
+}
+
+function randomMyListTopic() {
+  const list = parseMyList();
+  if (list.length === 0) return null;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function currentTopic() {
+  if (state.topicMode === "random") return state.topic;
+  if (state.topicMode === "mylist") {
+    return state.myListTopic || { theme: "（リストが空です）", low: "弱い", high: "強い" };
+  }
+  return { theme: state.customTheme || "（お題を入力してください）", low: state.customLow, high: state.customHigh };
+}
+
+function dealNumbers(count) {
+  const pool = Array.from({ length: 100 }, (_, i) => i + 1);
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, count);
+}
+
+const screens = {
+  setup: () => {
+    const c = el("div");
+    let startBtn, hint;
+    const checkValid = () => {
+      const validNames = state.players.filter(n => n.trim().length > 0);
+      const topicOk = state.topicMode === "random" ? true
+        : state.topicMode === "mylist" ? parseMyList().length > 0
+        : state.customTheme.trim().length > 0;
+      const canStart = validNames.length === state.players.length && state.players.length >= 2 && topicOk;
+      if (startBtn) startBtn.disabled = !canStart;
+      if (hint) hint.style.display = canStart ? "none" : "block";
+    };
+
+    const pc = el("div", { class: "card" });
+    pc.appendChild(el("h2", { text: "プレイヤー" }));
+    const list = el("div", { class: "player-list" });
+    state.players.forEach((name, i) => {
+      const row = el("div", { class: "player-row" });
+      const input = el("input", { attrs: { type: "text", placeholder: `プレイヤー${i + 1}の名前` } });
+      input.value = name;
+      input.oninput = (e) => { state.players[i] = e.target.value; checkValid(); };
+      row.appendChild(input);
+      if (state.players.length > 2) {
+        row.appendChild(el("button", { class: "ghost", text: "✕", onclick: () => { state.players.splice(i, 1); render(); } }));
+      }
+      list.appendChild(row);
+    });
+    pc.appendChild(list);
+    const addBtn = el("button", { class: "secondary", text: "＋ プレイヤーを追加" });
+    addBtn.onclick = () => { if (state.players.length < 8) { state.players.push(""); render(); } };
+    addBtn.disabled = state.players.length >= 8;
+    pc.appendChild(addBtn);
+    c.appendChild(pc);
+
+    const tc = el("div", { class: "card" });
+    tc.appendChild(el("h2", { text: "お題" }));
+    const toggle = el("div", { class: "toggle-group" });
+    const rndBtn = el("button", { text: "ランダム" });
+    const custBtn = el("button", { text: "自由入力" });
+    const myBtn = el("button", { text: "マイリスト" });
+    rndBtn.className = state.topicMode === "random" ? "active" : "";
+    custBtn.className = state.topicMode === "custom" ? "active" : "";
+    myBtn.className = state.topicMode === "mylist" ? "active" : "";
+    rndBtn.onclick = () => { state.topicMode = "random"; if (!state.topic) state.topic = randomTopic(); render(); };
+    custBtn.onclick = () => { state.topicMode = "custom"; render(); };
+    myBtn.onclick = () => {
+      state.topicMode = "mylist";
+      if (!state.myListTopic) state.myListTopic = randomMyListTopic();
+      render();
+    };
+    toggle.appendChild(rndBtn); toggle.appendChild(custBtn); toggle.appendChild(myBtn);
+    tc.appendChild(toggle);
+
+    if (state.topicMode === "random") {
+      if (!state.topic) state.topic = randomTopic();
+      const t = state.topic;
+      const card = el("div", { class: "topic-card" });
+      card.appendChild(el("div", { class: "label", text: `${t.low}(1) 〜 ${t.high}(100)` }));
+      card.appendChild(el("div", { class: "theme", text: t.theme }));
+      tc.appendChild(card);
+      const reroll = el("button", { class: "secondary", text: "🔀 別のお題にする" });
+      reroll.onclick = () => { state.topic = randomTopic(); render(); };
+      tc.appendChild(reroll);
+    } else if (state.topicMode === "mylist") {
+      const listCount = parseMyList().length;
+      if (listCount > 0) {
+        const t = state.myListTopic || randomMyListTopic();
+        state.myListTopic = t;
+        const card = el("div", { class: "topic-card" });
+        card.appendChild(el("div", { class: "label", text: `${t.low}(1) 〜 ${t.high}(100)` }));
+        card.appendChild(el("div", { class: "theme", text: t.theme }));
+        tc.appendChild(card);
+        const reroll = el("button", { class: "secondary", text: "🔀 別のお題にする" });
+        reroll.onclick = () => { state.myListTopic = randomMyListTopic(); render(); };
+        tc.appendChild(reroll);
+      } else {
+        tc.appendChild(el("div", { class: "muted", text: "まだリストが空です。下に貼り付けてください。" }));
+      }
+      const ta = el("textarea", { attrs: { placeholder: "1行に1お題ずつ貼り付け\n例: 高級なもの|安い|高い\n（｜区切りを省略すると 弱い〜強い になります）" } });
+      ta.value = state.myListRaw;
+      ta.oninput = (e) => {
+        state.myListRaw = e.target.value;
+        localStorage.setItem("ito_mylist", state.myListRaw);
+        checkValid();
+      };
+      ta.onblur = () => { state.myListTopic = randomMyListTopic(); };
+      tc.appendChild(el("div", { class: "muted", text: "お題リストを貼り付け(1行1お題)" }));
+      tc.appendChild(ta);
+      const linkRow = el("div");
+      linkRow.appendChild(el("a", {
+        class: "link", text: "お題のアイデア集（note: alice_1126さん）を見る ↗",
+        attrs: { href: "https://note.com/alice_1126/n/n4ccd49df4fa5", target: "_blank", rel: "noopener noreferrer" }
+      }));
+      tc.appendChild(linkRow);
+    } else {
+      const themeInput = el("input", { attrs: { type: "text", placeholder: "例: 高級なもの" } });
+      themeInput.value = state.customTheme;
+      themeInput.oninput = (e) => { state.customTheme = e.target.value; checkValid(); };
+      tc.appendChild(el("div", { class: "muted", text: "お題(テーマ)" }));
+      tc.appendChild(themeInput);
+      const rowLH = el("div", { class: "row" });
+      const lowInput = el("input", { attrs: { type: "text", placeholder: "1側のラベル(例: 安い)" } });
+      lowInput.value = state.customLow;
+      lowInput.oninput = (e) => { state.customLow = e.target.value; };
+      const highInput = el("input", { attrs: { type: "text", placeholder: "100側のラベル(例: 高い)" } });
+      highInput.value = state.customHigh;
+      highInput.oninput = (e) => { state.customHigh = e.target.value; };
+      rowLH.appendChild(lowInput); rowLH.appendChild(highInput);
+      tc.appendChild(el("div", { class: "muted", text: "1〜100のラベル" }));
+      tc.appendChild(rowLH);
+    }
+    c.appendChild(tc);
+
+    startBtn = el("button", { class: "primary", text: "ゲームをはじめる" });
+    startBtn.onclick = () => {
+      state.numbers = dealNumbers(state.players.length);
+      state.dealIndex = 0;
+      state.dealPhase = "handoff";
+      state.orderPicked = [];
+      state.revealIndex = 0;
+      state.screen = "deal";
+      render();
+    };
+    c.appendChild(startBtn);
+    hint = el("div", { class: "muted center", text: "全員の名前(2人以上)とお題を入力してください" });
+    c.appendChild(hint);
+    checkValid();
+
+    return c;
+  },
+
+  deal: () => {
+    const c = el("div");
+    const name = state.players[state.dealIndex];
+    const t = currentTopic();
+
+    const topicMini = el("div", { class: "muted center", text: `お題: ${t.theme} (${t.low}1〜${t.high}100)` });
+    c.appendChild(topicMini);
+
+    if (state.dealPhase === "handoff") {
+      const h = el("div", { class: "handoff card" });
+      h.appendChild(el("div", { class: "muted", text: "つぎは" }));
+      h.appendChild(el("div", { class: "who", text: `${name} さんの番です` }));
+      h.appendChild(el("div", { class: "muted", text: "スマホを渡してください。ほかの人は見ないでね！" }));
+      const btn = el("button", { class: "primary", text: "自分の数字を見る" });
+      btn.style.marginTop = "16px";
+      btn.style.width = "100%";
+      btn.onclick = () => { state.dealPhase = "reveal"; render(); };
+      h.appendChild(btn);
+      c.appendChild(h);
+    } else {
+      const r = el("div", { class: "card center" });
+      r.appendChild(el("div", { class: "muted", text: `${name} さんの数字` }));
+      r.appendChild(el("div", { class: "big-number", text: state.numbers[state.dealIndex] }));
+      const btn = el("button", { class: "primary", text: "確認した（隠す）" });
+      btn.style.width = "100%";
+      btn.onclick = () => {
+        if (state.dealIndex < state.players.length - 1) {
+          state.dealIndex++;
+          state.dealPhase = "handoff";
+        } else {
+          state.screen = "discuss";
+        }
+        render();
+      };
+      r.appendChild(btn);
+      c.appendChild(r);
+    }
+    return c;
+  },
+
+  discuss: () => {
+    const c = el("div");
+    const t = currentTopic();
+    const card = el("div", { class: "topic-card" });
+    card.appendChild(el("div", { class: "label", text: `${t.low}(1) 〜 ${t.high}(100)` }));
+    card.appendChild(el("div", { class: "theme", text: t.theme }));
+    c.appendChild(card);
+
+    const info = el("div", { class: "card" });
+    info.appendChild(el("h2", { text: "話し合いタイム" }));
+    info.appendChild(el("div", {
+      class: "muted",
+      text: "自分の数字の大きさをお題にたとえて、ヒントを言い合おう。数字そのものは言わないこと！全員が話せたら、せーので出す順番（小さい→大きい）を決めよう。"
+    }));
+    c.appendChild(info);
+
+    const playerCard = el("div", { class: "card" });
+    playerCard.appendChild(el("h2", { text: "プレイヤー" }));
+    const grid = el("div", { class: "pick-grid" });
+    state.players.forEach(p => grid.appendChild(el("span", { class: "name-tag", text: p })));
+    playerCard.appendChild(grid);
+    c.appendChild(playerCard);
+
+    const btn = el("button", { class: "primary", text: "順番を決める →" });
+    btn.onclick = () => { state.screen = "order"; render(); };
+    c.appendChild(btn);
+    return c;
+  },
+
+  order: () => {
+    const c = el("div");
+    c.appendChild(el("div", { class: "muted center", text: "小さい(1に近い)と思う順にタップして並べよう" }));
+
+    const orderCard = el("div", { class: "card" });
+    orderCard.appendChild(el("h2", { text: "この順番で公開します" }));
+    const list = el("div", { class: "order-list" });
+    if (state.orderPicked.length === 0) {
+      list.appendChild(el("div", { class: "muted", text: "まだ誰も選ばれていません" }));
+    }
+    state.orderPicked.forEach((idx, i) => {
+      const item = el("div", { class: "order-item" });
+      item.appendChild(el("div", { class: "idx", text: i + 1 }));
+      item.appendChild(el("div", { text: state.players[idx] }));
+      const removeBtn = el("button", { class: "ghost", text: "✕" });
+      removeBtn.style.marginLeft = "auto";
+      removeBtn.onclick = () => { state.orderPicked.splice(i, 1); render(); };
+      item.appendChild(removeBtn);
+      list.appendChild(item);
+    });
+    orderCard.appendChild(list);
+    c.appendChild(orderCard);
+
+    const remain = state.players.map((_, i) => i).filter(i => !state.orderPicked.includes(i));
+    if (remain.length > 0) {
+      const pickCard = el("div", { class: "card" });
+      pickCard.appendChild(el("h2", { text: "残りのプレイヤー" }));
+      const grid = el("div", { class: "pick-grid" });
+      remain.forEach(i => {
+        const b = el("button", { class: "secondary", text: state.players[i] });
+        b.onclick = () => { state.orderPicked.push(i); render(); };
+        grid.appendChild(b);
+      });
+      pickCard.appendChild(grid);
+      c.appendChild(pickCard);
+    }
+
+    const revealBtn = el("button", { class: "primary", text: "この順番で公開する" });
+    revealBtn.disabled = remain.length > 0;
+    revealBtn.onclick = () => { state.revealIndex = 0; state.revealedOk = true; state.screen = "reveal"; render(); };
+    c.appendChild(revealBtn);
+
+    const back = el("button", { class: "ghost", text: "← 話し合いに戻る" });
+    back.onclick = () => { state.screen = "discuss"; render(); };
+    c.appendChild(back);
+    return c;
+  },
+
+  reveal: () => {
+    const c = el("div");
+    const revealed = state.orderPicked.slice(0, state.revealIndex);
+    const list = el("div", { class: "order-list" });
+
+    let lastNum = -Infinity;
+    let ok = true;
+    revealed.forEach(idx => {
+      const num = state.numbers[idx];
+      const isOk = num >= lastNum;
+      if (!isOk) ok = false;
+      const item = el("div", { class: `reveal-item ${isOk ? "ok" : "ng"}` });
+      item.appendChild(el("div", { text: state.players[idx] }));
+      item.appendChild(el("div", { class: "num", text: num }));
+      list.appendChild(item);
+      lastNum = Math.max(lastNum, num);
+    });
+    state.revealedOk = ok;
+    c.appendChild(list);
+
+    if (state.revealIndex < state.orderPicked.length) {
+      const nextIdx = state.orderPicked[state.revealIndex];
+      const btn = el("button", { class: "primary", text: `次を公開: ${state.players[nextIdx]}` });
+      btn.onclick = () => { state.revealIndex++; render(); };
+      c.appendChild(btn);
+    } else {
+      const banner = el("div", { class: `result-banner ${state.revealedOk ? "win" : "lose"}`, text: state.revealedOk ? "🎉 クリア！全員小さい順に並びました" : "💥 失敗… 順番が逆転しました" });
+      c.appendChild(banner);
+      const nav = el("div", { class: "footer-nav" });
+      const again = el("button", { class: "primary", text: "もう一度あそぶ" });
+      again.onclick = () => {
+        if (state.topicMode === "random") state.topic = randomTopic();
+        if (state.topicMode === "mylist") state.myListTopic = randomMyListTopic() || state.myListTopic;
+        state.numbers = dealNumbers(state.players.length);
+        state.dealIndex = 0; state.dealPhase = "handoff";
+        state.orderPicked = []; state.revealIndex = 0;
+        state.screen = "deal";
+        render();
+      };
+      const toSetup = el("button", { class: "secondary", text: "設定に戻る" });
+      toSetup.onclick = () => { state.screen = "setup"; render(); };
+      nav.appendChild(again); nav.appendChild(toSetup);
+      c.appendChild(nav);
+    }
+    return c;
+  },
+};
+
+render();
+
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
