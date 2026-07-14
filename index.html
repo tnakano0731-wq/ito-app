@@ -241,6 +241,9 @@ let state = {
   customHigh: "強い",
   myListRaw: localStorage.getItem("ito_mylist") || "",
   myListTopic: null,
+  myNewTheme: "",
+  myNewLow: "",
+  myNewHigh: "",
   numbers: [],
   dealIndex: 0,
   dealPhase: "handoff",
@@ -297,6 +300,25 @@ function randomMyListTopic() {
   return list[Math.floor(Math.random() * list.length)];
 }
 
+function saveMyList(lines) {
+  state.myListRaw = lines.join("\n");
+  localStorage.setItem("ito_mylist", state.myListRaw);
+}
+
+function addMyListItem(theme, low, high) {
+  const lines = state.myListRaw.split("\n").filter(l => l.trim().length > 0);
+  lines.push(`${theme.trim()}|${(low || "").trim() || "弱い"}|${(high || "").trim() || "強い"}`);
+  saveMyList(lines);
+  if (!state.myListTopic) state.myListTopic = randomMyListTopic();
+}
+
+function removeMyListItem(index) {
+  const lines = state.myListRaw.split("\n").filter(l => l.trim().length > 0);
+  lines.splice(index, 1);
+  saveMyList(lines);
+  state.myListTopic = randomMyListTopic();
+}
+
 function currentTopic() {
   if (state.topicMode === "random") return state.topic;
   if (state.topicMode === "mylist") {
@@ -317,7 +339,7 @@ function dealNumbers(count) {
 const screens = {
   setup: () => {
     const c = el("div");
-    let startBtn, hint;
+    let startBtn;
     const checkValid = () => {
       const validNames = state.players.filter(n => n.trim().length > 0);
       const topicOk = state.topicMode === "random" ? true
@@ -325,7 +347,6 @@ const screens = {
         : state.customTheme.trim().length > 0;
       const canStart = validNames.length === state.players.length && state.players.length >= 2 && topicOk;
       if (startBtn) startBtn.disabled = !canStart;
-      if (hint) hint.style.display = canStart ? "none" : "block";
     };
 
     const pc = el("div", { class: "card" });
@@ -379,8 +400,8 @@ const screens = {
       reroll.onclick = () => { state.topic = randomTopic(); render(); };
       tc.appendChild(reroll);
     } else if (state.topicMode === "mylist") {
-      const listCount = parseMyList().length;
-      if (listCount > 0) {
+      const myList = parseMyList();
+      if (myList.length > 0) {
         const t = state.myListTopic || randomMyListTopic();
         state.myListTopic = t;
         const card = el("div", { class: "topic-card" });
@@ -390,19 +411,48 @@ const screens = {
         const reroll = el("button", { class: "secondary", text: "別のお題にする" });
         reroll.onclick = () => { state.myListTopic = randomMyListTopic(); render(); };
         tc.appendChild(reroll);
+
+        const ul = el("div", { class: "order-list" });
+        myList.forEach((item, i) => {
+          const row = el("div", { class: "order-item" });
+          const label = el("div", { text: item.theme });
+          label.style.flex = "1";
+          label.style.minWidth = "0";
+          const sub = el("div", { class: "muted", text: `${item.low}〜${item.high}` });
+          sub.style.flexShrink = "0";
+          const del = el("button", { class: "ghost", text: "✕" });
+          del.onclick = () => { removeMyListItem(i); render(); };
+          row.appendChild(label); row.appendChild(sub); row.appendChild(del);
+          ul.appendChild(row);
+        });
+        tc.appendChild(el("div", { class: "muted", text: `登録済みのお題 (${myList.length}件)` }));
+        tc.appendChild(ul);
       } else {
-        tc.appendChild(el("div", { class: "muted", text: "まだリストが空です。下に貼り付けてください。" }));
+        tc.appendChild(el("div", { class: "muted", text: "まだお題がありません。下から登録してください。" }));
       }
-      const ta = el("textarea", {});
-      ta.value = state.myListRaw;
-      ta.oninput = (e) => {
-        state.myListRaw = e.target.value;
-        localStorage.setItem("ito_mylist", state.myListRaw);
-        checkValid();
+
+      const newTheme = el("input", { attrs: { type: "text", placeholder: "お題 (例: 高級なもの)" } });
+      newTheme.value = state.myNewTheme;
+      newTheme.oninput = (e) => { state.myNewTheme = e.target.value; };
+      const rowNew = el("div", { class: "row" });
+      const newLow = el("input", { attrs: { type: "text", placeholder: "1側 (例: 安い)" } });
+      newLow.value = state.myNewLow;
+      newLow.oninput = (e) => { state.myNewLow = e.target.value; };
+      const newHigh = el("input", { attrs: { type: "text", placeholder: "100側 (例: 高い)" } });
+      newHigh.value = state.myNewHigh;
+      newHigh.oninput = (e) => { state.myNewHigh = e.target.value; };
+      rowNew.appendChild(newLow); rowNew.appendChild(newHigh);
+      const regBtn = el("button", { class: "secondary", text: "＋ お題を登録" });
+      regBtn.onclick = () => {
+        if (!state.myNewTheme.trim()) return;
+        addMyListItem(state.myNewTheme, state.myNewLow, state.myNewHigh);
+        state.myNewTheme = ""; state.myNewLow = ""; state.myNewHigh = "";
+        render();
       };
-      ta.onblur = () => { state.myListTopic = randomMyListTopic(); };
-      tc.appendChild(el("div", { class: "muted", text: "お題リストを貼り付け(1行1お題)" }));
-      tc.appendChild(ta);
+      tc.appendChild(el("div", { class: "muted", text: "新しいお題を登録" }));
+      tc.appendChild(newTheme);
+      tc.appendChild(rowNew);
+      tc.appendChild(regBtn);
     } else {
       const themeInput = el("input", { attrs: { type: "text", placeholder: "例: 高級なもの" } });
       themeInput.value = state.customTheme;
@@ -433,8 +483,6 @@ const screens = {
       render();
     };
     c.appendChild(startBtn);
-    hint = el("div", { class: "muted center", text: "全員の名前(2人以上)とお題を入力してください" });
-    c.appendChild(hint);
     checkValid();
 
     return c;
