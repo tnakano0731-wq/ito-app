@@ -45,7 +45,10 @@
   }
   .screen {
     width: 100%; max-width: 420px;
-    display: flex; flex-direction: column; gap: 20px;
+    display: flex; flex-direction: column; gap: 28px;
+  }
+  .screen > div:last-child {
+    display: flex; flex-direction: column; gap: 24px;
   }
   h1 {
     text-align: center; font-size: 26px; margin: 0 0 6px;
@@ -390,7 +393,7 @@ const screens = {
       } else {
         tc.appendChild(el("div", { class: "muted", text: "まだリストが空です。下に貼り付けてください。" }));
       }
-      const ta = el("textarea", { attrs: { placeholder: "1行に1お題ずつ貼り付け\n例: 高級なもの|安い|高い\n（｜区切りを省略すると 弱い〜強い になります）" } });
+      const ta = el("textarea", {});
       ta.value = state.myListRaw;
       ta.oninput = (e) => {
         state.myListRaw = e.target.value;
