@@ -79,9 +79,23 @@
     text-align: center;
     box-shadow: 0 10px 24px rgba(88,86,214,0.28);
   }
-  .topic-card .label { color: rgba(255,255,255,0.85); font-size: 12px; margin-bottom: 10px; letter-spacing: 0.3px; font-weight: 600; }
   .topic-card .theme { font-size: 20px; font-weight: 700; line-height: 1.5; color: #ffffff; }
-  .topic-card .range { margin-top: 10px; font-size: 13px; color: rgba(255,255,255,0.85); }
+  .meter { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+  .meter-end { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+  .meter-end .num { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.65); }
+  .meter-end .lbl { font-size: 13px; font-weight: 700; color: #ffffff; max-width: 96px; }
+  .meter-bar {
+    flex: 1; height: 6px; border-radius: 3px; position: relative;
+    background: linear-gradient(90deg, rgba(255,255,255,0.25), rgba(255,255,255,0.95));
+    margin-right: 6px;
+  }
+  .meter-bar::after {
+    content: ""; position: absolute; left: 100%; top: 50%;
+    transform: translateY(-50%);
+    border-left: 9px solid rgba(255,255,255,0.95);
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+  }
   input[type=text], textarea {
     width: 100%; padding: 13px 14px; border-radius: 12px;
     border: 1px solid var(--hairline); background: var(--card2); color: var(--text);
@@ -270,6 +284,7 @@ let state = {
   customLow: "弱い",
   customHigh: "強い",
   topics: loadTopics(),
+  pickMode: false,
   myNewTheme: "",
   myNewLow: "",
   myNewHigh: "",
@@ -341,8 +356,27 @@ function currentTopic() {
   return { theme: state.customTheme || "（お題を入力してください）", low: state.customLow, high: state.customHigh };
 }
 
-// iOS風の「左スワイプで削除」行を作る。fg(前面)をドラッグで左に動かすと背面の削除ボタンが現れる
-function makeSwipeRow(fg, onDelete) {
+// お題カード: テーマ + 1〜100の横メーター
+function topicCard(t) {
+  const card = el("div", { class: "topic-card" });
+  card.appendChild(el("div", { class: "theme", text: t.theme }));
+  const meter = el("div", { class: "meter" });
+  const left = el("div", { class: "meter-end" });
+  left.appendChild(el("span", { class: "num", text: "1" }));
+  left.appendChild(el("span", { class: "lbl", text: t.low }));
+  const right = el("div", { class: "meter-end" });
+  right.appendChild(el("span", { class: "num", text: "100" }));
+  right.appendChild(el("span", { class: "lbl", text: t.high }));
+  meter.appendChild(left);
+  meter.appendChild(el("div", { class: "meter-bar" }));
+  meter.appendChild(right);
+  card.appendChild(meter);
+  return card;
+}
+
+// iOS風の「左スワイプで削除」行を作る。fg(前面)をドラッグで左に動かすと背面の削除ボタンが現れる。
+// onTapを渡すと、スワイプせずにタップした時に呼ばれる(開いている時のタップは閉じる動作)
+function makeSwipeRow(fg, onDelete, onTap) {
   const wrap = el("div", { class: "swipe-row" });
   const del = el("button", { class: "swipe-del", text: "削除" });
   del.onclick = onDelete;
@@ -367,8 +401,16 @@ function makeSwipeRow(fg, onDelete) {
     if (!dragging) return;
     dragging = false;
     fg.style.transition = "transform .2s ease";
-    curX = curX < OPEN_X / 2 ? OPEN_X : 0;
-    fg.style.transform = `translateX(${curX}px)`;
+    const moved = Math.abs(curX - baseX);
+    if (moved < 5) {
+      const wasOpen = baseX !== 0;
+      curX = 0;
+      fg.style.transform = "translateX(0px)";
+      if (!wasOpen && onTap) onTap();
+    } else {
+      curX = curX < OPEN_X / 2 ? OPEN_X : 0;
+      fg.style.transform = `translateX(${curX}px)`;
+    }
   };
   fg.addEventListener("pointerup", settle);
   fg.addEventListener("pointercancel", settle);
@@ -422,7 +464,7 @@ const screens = {
     tc.appendChild(el("h2", { text: "お題" }));
     const toggle = el("div", { class: "toggle-group" });
     const rndBtn = el("button", { text: "ランダム" });
-    const custBtn = el("button", { text: "自由入力" });
+    const custBtn = el("button", { text: "自由選択" });
     rndBtn.className = state.topicMode === "random" ? "active" : "";
     custBtn.className = state.topicMode === "custom" ? "active" : "";
     rndBtn.onclick = () => { state.topicMode = "random"; if (!state.topic) state.topic = randomTopic(); render(); };
@@ -433,35 +475,36 @@ const screens = {
     if (state.topicMode === "random") {
       if (state.topics.length > 0) {
         if (!state.topic) state.topic = randomTopic();
-        const t = state.topic;
-        const card = el("div", { class: "topic-card" });
-        card.appendChild(el("div", { class: "label", text: `${t.low}(1) 〜 ${t.high}(100)` }));
-        card.appendChild(el("div", { class: "theme", text: t.theme }));
-        tc.appendChild(card);
+        tc.appendChild(topicCard(state.topic));
         const reroll = el("button", { class: "secondary", text: "別のお題にする" });
         reroll.onclick = () => { state.topic = randomTopic(); render(); };
         tc.appendChild(reroll);
       } else {
         tc.appendChild(el("div", { class: "muted", text: "マイリストにお題がありません。編集画面から登録してください。" }));
       }
-      const editBtn = el("button", { class: "ghost", text: `マイリストを編集 (${state.topics.length}件) →` });
-      editBtn.onclick = () => { state.screen = "mylist"; render(); };
+      const editBtn = el("button", { class: "ghost", text: "マイリストを編集 →" });
+      editBtn.onclick = () => { state.pickMode = false; state.screen = "mylist"; render(); };
       tc.appendChild(editBtn);
     } else {
-      const themeInput = el("input", { attrs: { type: "text", placeholder: "例: 高級なもの" } });
+      if (state.customTheme.trim()) {
+        tc.appendChild(topicCard(currentTopic()));
+      }
+      const pickBtn = el("button", { class: "secondary", text: "リストから選ぶ" });
+      pickBtn.onclick = () => { state.pickMode = true; state.screen = "mylist"; render(); };
+      tc.appendChild(pickBtn);
+      tc.appendChild(el("div", { class: "muted", text: "または自分で入力" }));
+      const themeInput = el("input", { attrs: { type: "text", placeholder: "お題 (例: 高級なもの)" } });
       themeInput.value = state.customTheme;
       themeInput.oninput = (e) => { state.customTheme = e.target.value; checkValid(); };
-      tc.appendChild(el("div", { class: "muted", text: "お題(テーマ)" }));
       tc.appendChild(themeInput);
       const rowLH = el("div", { class: "row" });
-      const lowInput = el("input", { attrs: { type: "text", placeholder: "1側のラベル(例: 安い)" } });
+      const lowInput = el("input", { attrs: { type: "text", placeholder: "1側 (例: 安い)" } });
       lowInput.value = state.customLow;
       lowInput.oninput = (e) => { state.customLow = e.target.value; };
-      const highInput = el("input", { attrs: { type: "text", placeholder: "100側のラベル(例: 高い)" } });
+      const highInput = el("input", { attrs: { type: "text", placeholder: "100側 (例: 高い)" } });
       highInput.value = state.customHigh;
       highInput.oninput = (e) => { state.customHigh = e.target.value; };
       rowLH.appendChild(lowInput); rowLH.appendChild(highInput);
-      tc.appendChild(el("div", { class: "muted", text: "1〜100のラベル" }));
       tc.appendChild(rowLH);
     }
     c.appendChild(tc);
@@ -485,9 +528,11 @@ const screens = {
   mylist: () => {
     const c = el("div");
 
+    const picking = !!state.pickMode;
+
     const back = el("button", { class: "ghost", text: "← 設定に戻る" });
     back.style.alignSelf = "flex-start";
-    back.onclick = () => { state.screen = "setup"; render(); };
+    back.onclick = () => { state.pickMode = false; state.screen = "setup"; render(); };
     c.appendChild(back);
 
     const addCard = el("div", { class: "card" });
@@ -520,17 +565,17 @@ const screens = {
     addCard.appendChild(newTheme);
     addCard.appendChild(rowNew);
     addCard.appendChild(regBtn);
-    c.appendChild(addCard);
+    if (!picking) c.appendChild(addCard);
 
     const listSection = el("div");
     listSection.style.display = "flex";
     listSection.style.flexDirection = "column";
     listSection.style.gap = "10px";
     const listHead = el("div", { class: "row" });
-    const listTitle = el("h2", { text: `マイリスト (${state.topics.length}件)` });
+    const listTitle = el("h2", { text: picking ? "お題を選ぶ" : `マイリスト (${state.topics.length}件)` });
     listTitle.style.flex = "1";
     listHead.appendChild(listTitle);
-    listHead.appendChild(el("div", { class: "muted", text: "← スワイプで削除" }));
+    listHead.appendChild(el("div", { class: "muted", text: picking ? "タップで決定" : "← スワイプで削除" }));
     listSection.appendChild(listHead);
 
     if (state.topics.length === 0) {
@@ -541,12 +586,20 @@ const screens = {
         const content = el("div", { class: "swipe-fg" });
         content.appendChild(el("div", { class: "swipe-theme", text: t.theme }));
         content.appendChild(el("div", { class: "swipe-sub", text: `${t.low} 〜 ${t.high}` }));
+        const onTap = picking ? () => {
+          state.customTheme = t.theme;
+          state.customLow = t.low;
+          state.customHigh = t.high;
+          state.pickMode = false;
+          state.screen = "setup";
+          render();
+        } : null;
         ul.appendChild(makeSwipeRow(content, () => {
           state.topics.splice(i, 1);
           saveTopics();
           state.topic = randomTopic();
           render();
-        }));
+        }, onTap));
       });
       listSection.appendChild(ul);
     }
@@ -599,11 +652,7 @@ const screens = {
 
   discuss: () => {
     const c = el("div");
-    const t = currentTopic();
-    const card = el("div", { class: "topic-card" });
-    card.appendChild(el("div", { class: "label", text: `${t.low}(1) 〜 ${t.high}(100)` }));
-    card.appendChild(el("div", { class: "theme", text: t.theme }));
-    c.appendChild(card);
+    c.appendChild(topicCard(currentTopic()));
 
     const info = el("div", { class: "card" });
     info.appendChild(el("h2", { text: "話し合いタイム" }));
