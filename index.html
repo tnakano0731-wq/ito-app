@@ -46,15 +46,22 @@
   .screen {
     width: 100%; max-width: 420px;
     display: flex; flex-direction: column; gap: 28px;
+    animation: rise .3s ease;
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
   }
   .screen > div:last-child {
     display: flex; flex-direction: column; gap: 24px;
   }
   h1 {
-    text-align: center; font-size: 26px; margin: 0 0 6px;
-    font-weight: 800; letter-spacing: -0.5px;
+    text-align: center; font-size: 28px; margin: 0 0 4px;
+    font-weight: 800; letter-spacing: 4px;
+    background: linear-gradient(135deg, #5856d6, #af52de);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
-  h1 span { color: var(--accent); }
   h2 { font-size: 13px; margin: 0; color: var(--muted); font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.4px; }
   .card {
@@ -65,15 +72,16 @@
     box-shadow: 0 1px 2px rgba(30,30,40,0.04), 0 8px 20px rgba(30,30,40,0.06);
   }
   .topic-card {
-    background: linear-gradient(135deg, #eef0ff, #ffffff 60%);
-    border: 1px solid rgba(88,86,214,0.15);
+    background: linear-gradient(135deg, #5856d6, #7a5fe0 55%, #af52de);
+    border: none;
     border-radius: 18px;
-    padding: 26px 20px;
+    padding: 28px 20px;
     text-align: center;
+    box-shadow: 0 10px 24px rgba(88,86,214,0.28);
   }
-  .topic-card .label { color: var(--accent); font-size: 12px; margin-bottom: 10px; letter-spacing: 0.2px; font-weight: 600; }
-  .topic-card .theme { font-size: 19px; font-weight: 700; line-height: 1.5; }
-  .topic-card .range { margin-top: 10px; font-size: 13px; color: var(--accent); }
+  .topic-card .label { color: rgba(255,255,255,0.85); font-size: 12px; margin-bottom: 10px; letter-spacing: 0.3px; font-weight: 600; }
+  .topic-card .theme { font-size: 20px; font-weight: 700; line-height: 1.5; color: #ffffff; }
+  .topic-card .range { margin-top: 10px; font-size: 13px; color: rgba(255,255,255,0.85); }
   input[type=text], textarea {
     width: 100%; padding: 13px 14px; border-radius: 12px;
     border: 1px solid var(--hairline); background: var(--card2); color: var(--text);
@@ -91,7 +99,10 @@
     transition: transform .08s ease, opacity .15s ease, background-color .15s ease;
   }
   button:active { transform: scale(0.97); opacity: 0.85; }
-  button.primary { background: var(--accent); color: #ffffff; box-shadow: 0 6px 16px rgba(88,86,214,0.3); }
+  button.primary {
+    background: linear-gradient(135deg, #5856d6, #7d55dd);
+    color: #ffffff; box-shadow: 0 6px 16px rgba(88,86,214,0.3);
+  }
   button.secondary { background: var(--card2); color: var(--text); }
   button.ghost { background: transparent; color: var(--muted); padding: 8px 10px; font-size: 14px; }
   button.danger { background: var(--bad); color: #ffffff; }
@@ -152,12 +163,31 @@
     border-radius: 9px; padding: 9px 10px; font-size: 14px; font-weight: 600;
   }
   .toggle-group button.active { background: #ffffff; color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+  .swipe-list { display: flex; flex-direction: column; gap: 8px; }
+  .swipe-row {
+    position: relative; border-radius: 14px; overflow: hidden;
+    background: var(--bad);
+    box-shadow: 0 1px 2px rgba(30,30,40,0.05);
+  }
+  .swipe-del {
+    position: absolute; top: 0; right: 0; bottom: 0; width: 84px;
+    background: var(--bad); color: #ffffff;
+    border-radius: 0; font-size: 14px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .swipe-fg {
+    position: relative; background: var(--card);
+    padding: 15px 16px; display: flex; align-items: center; gap: 10px;
+    touch-action: pan-y; will-change: transform;
+  }
+  .swipe-theme { flex: 1; min-width: 0; font-weight: 600; font-size: 15px; line-height: 1.4; }
+  .swipe-sub { flex-shrink: 0; font-size: 12px; color: var(--muted); }
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script>
-const TOPICS = [
+const BUILTIN_TOPICS = [
   { theme: "高級なもの", low: "安い", high: "高い" },
   { theme: "大人になったら怒られること", low: "弱い", high: "強い" },
   { theme: "一人カラオケで歌ったら驚かれる曲", low: "普通", high: "意外" },
@@ -239,8 +269,7 @@ let state = {
   customTheme: "",
   customLow: "弱い",
   customHigh: "強い",
-  myListRaw: localStorage.getItem("ito_mylist") || "",
-  myListTopic: null,
+  topics: loadTopics(),
   myNewTheme: "",
   myNewLow: "",
   myNewHigh: "",
@@ -279,52 +308,71 @@ function el(tag, opts = {}, children = []) {
   return e;
 }
 
-function randomTopic() {
-  return TOPICS[Math.floor(Math.random() * TOPICS.length)];
-}
-
-function parseMyList() {
-  return state.myListRaw
-    .split("\n")
-    .map(line => line.trim())
-    .filter(line => line.length > 0)
+function loadTopics() {
+  try {
+    const saved = localStorage.getItem("ito_topics");
+    if (saved) return JSON.parse(saved);
+  } catch (e) { /* 破損時は初期化 */ }
+  // 初回: 内蔵お題 + 旧マイリストのデータを統合して保存
+  const old = (localStorage.getItem("ito_mylist") || "")
+    .split("\n").map(l => l.trim()).filter(l => l.length > 0)
     .map(line => {
-      const parts = line.split("|").map(p => p.trim());
-      return { theme: parts[0], low: parts[1] || "弱い", high: parts[2] || "強い" };
+      const p = line.split("|").map(s => s.trim());
+      return { theme: p[0], low: p[1] || "弱い", high: p[2] || "強い" };
     });
+  const topics = [...BUILTIN_TOPICS, ...old];
+  localStorage.setItem("ito_topics", JSON.stringify(topics));
+  return topics;
 }
 
-function randomMyListTopic() {
-  const list = parseMyList();
-  if (list.length === 0) return null;
-  return list[Math.floor(Math.random() * list.length)];
+function saveTopics() {
+  localStorage.setItem("ito_topics", JSON.stringify(state.topics));
 }
 
-function saveMyList(lines) {
-  state.myListRaw = lines.join("\n");
-  localStorage.setItem("ito_mylist", state.myListRaw);
-}
-
-function addMyListItem(theme, low, high) {
-  const lines = state.myListRaw.split("\n").filter(l => l.trim().length > 0);
-  lines.push(`${theme.trim()}|${(low || "").trim() || "弱い"}|${(high || "").trim() || "強い"}`);
-  saveMyList(lines);
-  if (!state.myListTopic) state.myListTopic = randomMyListTopic();
-}
-
-function removeMyListItem(index) {
-  const lines = state.myListRaw.split("\n").filter(l => l.trim().length > 0);
-  lines.splice(index, 1);
-  saveMyList(lines);
-  state.myListTopic = randomMyListTopic();
+function randomTopic() {
+  if (state.topics.length === 0) return null;
+  return state.topics[Math.floor(Math.random() * state.topics.length)];
 }
 
 function currentTopic() {
-  if (state.topicMode === "random") return state.topic;
-  if (state.topicMode === "mylist") {
-    return state.myListTopic || { theme: "（リストが空です）", low: "弱い", high: "強い" };
+  if (state.topicMode === "random") {
+    return state.topic || { theme: "（お題がありません）", low: "弱い", high: "強い" };
   }
   return { theme: state.customTheme || "（お題を入力してください）", low: state.customLow, high: state.customHigh };
+}
+
+// iOS風の「左スワイプで削除」行を作る。fg(前面)をドラッグで左に動かすと背面の削除ボタンが現れる
+function makeSwipeRow(fg, onDelete) {
+  const wrap = el("div", { class: "swipe-row" });
+  const del = el("button", { class: "swipe-del", text: "削除" });
+  del.onclick = onDelete;
+  wrap.appendChild(del);
+  wrap.appendChild(fg);
+
+  const OPEN_X = -84;
+  let startX = 0, baseX = 0, curX = 0, dragging = false;
+  fg.addEventListener("pointerdown", (e) => {
+    dragging = true;
+    startX = e.clientX;
+    baseX = curX;
+    fg.style.transition = "none";
+    fg.setPointerCapture(e.pointerId);
+  });
+  fg.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    curX = Math.min(0, Math.max(OPEN_X - 20, baseX + e.clientX - startX));
+    fg.style.transform = `translateX(${curX}px)`;
+  });
+  const settle = () => {
+    if (!dragging) return;
+    dragging = false;
+    fg.style.transition = "transform .2s ease";
+    curX = curX < OPEN_X / 2 ? OPEN_X : 0;
+    fg.style.transform = `translateX(${curX}px)`;
+  };
+  fg.addEventListener("pointerup", settle);
+  fg.addEventListener("pointercancel", settle);
+  return wrap;
 }
 
 function dealNumbers(count) {
@@ -342,8 +390,8 @@ const screens = {
     let startBtn;
     const checkValid = () => {
       const validNames = state.players.filter(n => n.trim().length > 0);
-      const topicOk = state.topicMode === "random" ? true
-        : state.topicMode === "mylist" ? parseMyList().length > 0
+      const topicOk = state.topicMode === "random"
+        ? state.topics.length > 0
         : state.customTheme.trim().length > 0;
       const canStart = validNames.length === state.players.length && state.players.length >= 2 && topicOk;
       if (startBtn) startBtn.disabled = !canStart;
@@ -375,84 +423,30 @@ const screens = {
     const toggle = el("div", { class: "toggle-group" });
     const rndBtn = el("button", { text: "ランダム" });
     const custBtn = el("button", { text: "自由入力" });
-    const myBtn = el("button", { text: "マイリスト" });
     rndBtn.className = state.topicMode === "random" ? "active" : "";
     custBtn.className = state.topicMode === "custom" ? "active" : "";
-    myBtn.className = state.topicMode === "mylist" ? "active" : "";
     rndBtn.onclick = () => { state.topicMode = "random"; if (!state.topic) state.topic = randomTopic(); render(); };
     custBtn.onclick = () => { state.topicMode = "custom"; render(); };
-    myBtn.onclick = () => {
-      state.topicMode = "mylist";
-      if (!state.myListTopic) state.myListTopic = randomMyListTopic();
-      render();
-    };
-    toggle.appendChild(rndBtn); toggle.appendChild(custBtn); toggle.appendChild(myBtn);
+    toggle.appendChild(rndBtn); toggle.appendChild(custBtn);
     tc.appendChild(toggle);
 
     if (state.topicMode === "random") {
-      if (!state.topic) state.topic = randomTopic();
-      const t = state.topic;
-      const card = el("div", { class: "topic-card" });
-      card.appendChild(el("div", { class: "label", text: `${t.low}(1) 〜 ${t.high}(100)` }));
-      card.appendChild(el("div", { class: "theme", text: t.theme }));
-      tc.appendChild(card);
-      const reroll = el("button", { class: "secondary", text: "別のお題にする" });
-      reroll.onclick = () => { state.topic = randomTopic(); render(); };
-      tc.appendChild(reroll);
-    } else if (state.topicMode === "mylist") {
-      const myList = parseMyList();
-      if (myList.length > 0) {
-        const t = state.myListTopic || randomMyListTopic();
-        state.myListTopic = t;
+      if (state.topics.length > 0) {
+        if (!state.topic) state.topic = randomTopic();
+        const t = state.topic;
         const card = el("div", { class: "topic-card" });
         card.appendChild(el("div", { class: "label", text: `${t.low}(1) 〜 ${t.high}(100)` }));
         card.appendChild(el("div", { class: "theme", text: t.theme }));
         tc.appendChild(card);
         const reroll = el("button", { class: "secondary", text: "別のお題にする" });
-        reroll.onclick = () => { state.myListTopic = randomMyListTopic(); render(); };
+        reroll.onclick = () => { state.topic = randomTopic(); render(); };
         tc.appendChild(reroll);
-
-        const ul = el("div", { class: "order-list" });
-        myList.forEach((item, i) => {
-          const row = el("div", { class: "order-item" });
-          const label = el("div", { text: item.theme });
-          label.style.flex = "1";
-          label.style.minWidth = "0";
-          const sub = el("div", { class: "muted", text: `${item.low}〜${item.high}` });
-          sub.style.flexShrink = "0";
-          const del = el("button", { class: "ghost", text: "✕" });
-          del.onclick = () => { removeMyListItem(i); render(); };
-          row.appendChild(label); row.appendChild(sub); row.appendChild(del);
-          ul.appendChild(row);
-        });
-        tc.appendChild(el("div", { class: "muted", text: `登録済みのお題 (${myList.length}件)` }));
-        tc.appendChild(ul);
       } else {
-        tc.appendChild(el("div", { class: "muted", text: "まだお題がありません。下から登録してください。" }));
+        tc.appendChild(el("div", { class: "muted", text: "マイリストにお題がありません。編集画面から登録してください。" }));
       }
-
-      const newTheme = el("input", { attrs: { type: "text", placeholder: "お題 (例: 高級なもの)" } });
-      newTheme.value = state.myNewTheme;
-      newTheme.oninput = (e) => { state.myNewTheme = e.target.value; };
-      const rowNew = el("div", { class: "row" });
-      const newLow = el("input", { attrs: { type: "text", placeholder: "1側 (例: 安い)" } });
-      newLow.value = state.myNewLow;
-      newLow.oninput = (e) => { state.myNewLow = e.target.value; };
-      const newHigh = el("input", { attrs: { type: "text", placeholder: "100側 (例: 高い)" } });
-      newHigh.value = state.myNewHigh;
-      newHigh.oninput = (e) => { state.myNewHigh = e.target.value; };
-      rowNew.appendChild(newLow); rowNew.appendChild(newHigh);
-      const regBtn = el("button", { class: "secondary", text: "＋ お題を登録" });
-      regBtn.onclick = () => {
-        if (!state.myNewTheme.trim()) return;
-        addMyListItem(state.myNewTheme, state.myNewLow, state.myNewHigh);
-        state.myNewTheme = ""; state.myNewLow = ""; state.myNewHigh = "";
-        render();
-      };
-      tc.appendChild(el("div", { class: "muted", text: "新しいお題を登録" }));
-      tc.appendChild(newTheme);
-      tc.appendChild(rowNew);
-      tc.appendChild(regBtn);
+      const editBtn = el("button", { class: "ghost", text: `マイリストを編集 (${state.topics.length}件) →` });
+      editBtn.onclick = () => { state.screen = "mylist"; render(); };
+      tc.appendChild(editBtn);
     } else {
       const themeInput = el("input", { attrs: { type: "text", placeholder: "例: 高級なもの" } });
       themeInput.value = state.customTheme;
@@ -484,6 +478,79 @@ const screens = {
     };
     c.appendChild(startBtn);
     checkValid();
+
+    return c;
+  },
+
+  mylist: () => {
+    const c = el("div");
+
+    const back = el("button", { class: "ghost", text: "← 設定に戻る" });
+    back.style.alignSelf = "flex-start";
+    back.onclick = () => { state.screen = "setup"; render(); };
+    c.appendChild(back);
+
+    const addCard = el("div", { class: "card" });
+    addCard.appendChild(el("h2", { text: "お題を追加" }));
+    const newTheme = el("input", { attrs: { type: "text", placeholder: "お題 (例: 高級なもの)" } });
+    newTheme.value = state.myNewTheme;
+    newTheme.oninput = (e) => { state.myNewTheme = e.target.value; };
+    const rowNew = el("div", { class: "row" });
+    const newLow = el("input", { attrs: { type: "text", placeholder: "1側 (例: 安い)" } });
+    newLow.value = state.myNewLow;
+    newLow.oninput = (e) => { state.myNewLow = e.target.value; };
+    const newHigh = el("input", { attrs: { type: "text", placeholder: "100側 (例: 高い)" } });
+    newHigh.value = state.myNewHigh;
+    newHigh.oninput = (e) => { state.myNewHigh = e.target.value; };
+    rowNew.appendChild(newLow); rowNew.appendChild(newHigh);
+    const regBtn = el("button", { class: "primary", text: "＋ お題を登録" });
+    regBtn.onclick = () => {
+      const theme = state.myNewTheme.trim();
+      if (!theme) return;
+      state.topics.unshift({
+        theme,
+        low: state.myNewLow.trim() || "弱い",
+        high: state.myNewHigh.trim() || "強い",
+      });
+      saveTopics();
+      state.myNewTheme = ""; state.myNewLow = ""; state.myNewHigh = "";
+      if (!state.topic) state.topic = randomTopic();
+      render();
+    };
+    addCard.appendChild(newTheme);
+    addCard.appendChild(rowNew);
+    addCard.appendChild(regBtn);
+    c.appendChild(addCard);
+
+    const listSection = el("div");
+    listSection.style.display = "flex";
+    listSection.style.flexDirection = "column";
+    listSection.style.gap = "10px";
+    const listHead = el("div", { class: "row" });
+    const listTitle = el("h2", { text: `マイリスト (${state.topics.length}件)` });
+    listTitle.style.flex = "1";
+    listHead.appendChild(listTitle);
+    listHead.appendChild(el("div", { class: "muted", text: "← スワイプで削除" }));
+    listSection.appendChild(listHead);
+
+    if (state.topics.length === 0) {
+      listSection.appendChild(el("div", { class: "muted center", text: "お題がありません" }));
+    } else {
+      const ul = el("div", { class: "swipe-list" });
+      state.topics.forEach((t, i) => {
+        const content = el("div", { class: "swipe-fg" });
+        content.appendChild(el("div", { class: "swipe-theme", text: t.theme }));
+        content.appendChild(el("div", { class: "swipe-sub", text: `${t.low} 〜 ${t.high}` }));
+        ul.appendChild(makeSwipeRow(content, () => {
+          state.topics.splice(i, 1);
+          saveTopics();
+          state.topic = randomTopic();
+          render();
+        }));
+      });
+      listSection.appendChild(ul);
+    }
+    c.appendChild(listSection);
 
     return c;
   },
@@ -648,8 +715,7 @@ const screens = {
       const nav = el("div", { class: "footer-nav" });
       const again = el("button", { class: "primary", text: "もう一度あそぶ" });
       again.onclick = () => {
-        if (state.topicMode === "random") state.topic = randomTopic();
-        if (state.topicMode === "mylist") state.myListTopic = randomMyListTopic() || state.myListTopic;
+        if (state.topicMode === "random") state.topic = randomTopic() || state.topic;
         state.numbers = dealNumbers(state.players.length);
         state.dealIndex = 0; state.dealPhase = "handoff";
         state.orderPicked = []; state.revealIndex = 0;
